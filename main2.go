@@ -543,7 +543,7 @@ func send_mail(attached string){
 		"smtp.gmail.com:587",
 		auth,
 		"nishimura.2460.home@gmail.com",
-		[]string{"Kaznim21@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
+		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
 //		[]string{"nishimura.2460.home@gmail.com"},
 		[]byte(mainstring),
 	)
