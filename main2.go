@@ -527,8 +527,8 @@ func send_mail(attached string){
 	// Set up authentication information.
 	auth := smtp.PlainAuth(
 		"",
-		"sensor.raspi.9831@gmail.com",
-		"lnfetzmhnnjsxgwl",
+		"nishimura.2460.home@gmail.com",
+		"ctmtpruirzswhyaj",
 		"smtp.gmail.com",
 	)
 
@@ -542,9 +542,9 @@ func send_mail(attached string){
 	errs := smtp.SendMail(
 		"smtp.gmail.com:587",
 		auth,
-		"sensor.raspi.9831@gmail.com",
+		"nishimura.2460.home@gmail.com",
 		[]string{"Kaznim21@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
-	//	[]string{"nishimura.2460.home@gmail.com"},
+//		[]string{"nishimura.2460.home@gmail.com"},
 		[]byte(mainstring),
 	)
 	if errs != nil {
