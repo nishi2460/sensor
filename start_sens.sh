@@ -21,9 +21,9 @@ if [ $CHANGE == 0 ]; then
 fi
 
 
-#while true
-#do
+while true
+do
   ~/Z_Work/sensor/sensor
-#done
+done
 
 
