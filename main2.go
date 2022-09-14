@@ -533,9 +533,17 @@ func send_mail(attached string){
 	)
 
 	hostname, _ := os.Hostname()
-	subjectstring := fmt.Sprintf("Subject: %s %s\r\n\r\n",hostname, attached[25:42])
+	subjectstring := "Mime-Version: 1.0\r\n"
+	subjectstring += fmt.Sprintf("Subject: %s %s\r\n",hostname, attached[25:42])
+	subjectstring += fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"--nishi\"\r\n")
+	subjectstring += fmt.Sprintf("\r\n")
+	subjectstring += fmt.Sprintf("----nishi\r\n")
+	subjectstring += fmt.Sprintf("Content-Type: text/plain; charset=iso-2022-jp\r\n")
+	subjectstring += fmt.Sprintf("\r\n\r\n")
+	subjectstring += fmt.Sprintf("----nishi\r\n")
+	subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached[25:50])
+	subjectstring += fmt.Sprintf("Content-Transfer-Encoding: x-uuencode\r\n")
 
-	mainstring := subjectstring + s_out
 
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
@@ -543,9 +551,9 @@ func send_mail(attached string){
 		"smtp.gmail.com:587",
 		auth,
 		"nishimura.2460.home@gmail.com",
-		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
 //		[]string{"nishimura.2460.home@gmail.com"},
-		[]byte(mainstring),
+		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
+		[]byte(subjectstring + s_out + "\r\n----nishi--\r\n"),
 	)
 	if errs != nil {
 		panic(err)
@@ -569,7 +577,6 @@ func main() {
 		time.Sleep(time.Minute * 1)
 
 		count++
-
 		if count>=60 {
 			count = 0
 			makeHourFile("/home/zero/Z_Work/sensor/env.csv")
