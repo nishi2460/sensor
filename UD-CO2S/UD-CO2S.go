@@ -95,7 +95,7 @@ func dataGet() {
 		if len(res) > 2 {
 			t := time.Now()
 //			fmt.Printf("%02d:%02d,%s", t.Hour(), t.Minute(), res)
-			res_str := fmt.Sprintf("%02d-%02dT%02d:%02d,%s", t.Month(), t.Day(), t.Hour(), t.Minute(), res)
+			res_str := fmt.Sprintf("%04d/%02d/%02d %02d:%02d,%s", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), res)
 			fout.WriteString(res_str)
 		}
 		time.Sleep(time.Second * 15)

@@ -111,7 +111,7 @@ func main() {
 		srk := float32(uint16(datas[26])+uint16(datas[27])*uint16(256)) * 0.01
 
 		t := time.Now()
-		res_str := fmt.Sprintf("%02d-%02dT%02d:%02d,%0.2f,%0.2f,%0.0f,%0.3f,%0.2f,%0.0f,%0.0f,%0.2f,%0.2f\n", t.Month(), t.Day(), t.Hour(), t.Minute(), tmp, hum, led, prs, noz, tvo, co2, dis, srk)
+		res_str := fmt.Sprintf("%4d/%02d/%02d %02d:%02d,%0.2f,%0.2f,%0.0f,%0.3f,%0.2f,%0.0f,%0.0f,%0.2f,%0.2f\n", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), tmp, hum, led, prs, noz, tvo, co2, dis, srk)
 		fout.WriteString(res_str)
 
 		time.Sleep(time.Minute * 1)

@@ -12,6 +12,7 @@ import (
 	"time"
 	"net"
 	"compress/gzip"
+	"archive/zip"
 	"net/smtp"
 )
 
@@ -68,7 +69,7 @@ func setETC(etc omronElem) {
 }
 func dispAll(){
 	fmt.Printf(" \n")
-	fmt.Printf(" %v\n", dispData.Time)
+	fmt.Printf(" %v\n", dispData.Time[6:16])
 	fmt.Printf(" \n")
 	fmt.Printf(" Temp: %v\n", dispData.Temp)
 	fmt.Printf(" Humi: %v\n", dispData.Humi)
@@ -83,85 +84,6 @@ func dispAll(){
 
 	aaa, _ := localAddresses()
 	fmt.Println(aaa)
-}
-
-func getCo2() (datas []udco2Elem, disp_co2 float64) {
-	fin, err := os.Open("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2_result.csv")
-	if err != nil {
-		fmt.Println("panic")
-		panic(err)
-	}
-	defer fin.Close()
-	reader := csv.NewReader(fin)
-	reader.TrimLeadingSpace = true
-
-	var line []string
-	for {
-		line, err = reader.Read()
-		if err != nil {
-			break
-		}
-		times := strings.TrimSpace(line[0])
-
-		okstring := regexp.MustCompile(`OK`)
-		if okstring.MatchString(line[1]) {
-			continue
-		}
-
-		rep := regexp.MustCompile(`CO2=\s*`)
-		result := rep.Split(line[1], -1)
-		c, _ := strconv.ParseFloat(result[1], 64)
-
-//		rep = regexp.MustCompile(`HUM=\s*`)
-//		result = rep.Split(line[2], -1)
-//		h, _ := strconv.ParseFloat(result[1], 64)
-
-//		rep = regexp.MustCompile(`TMP=\s*`)
-//		result = rep.Split(line[3], -1)
-//		t, _ := strconv.ParseFloat(result[1], 64)
-
-		data := udco2Elem{times, c/*, h, t*/}
-		datas = append(datas, data)
-
-		disp_co2 = c
-	}
-
-	return
-}
-func getETC() (datas []omronElem, dispdata omronElem) {
-	fin, err := os.Open("/home/zero/Z_Work/sensor/omron/omron.csv")
-	if err != nil {
-		fmt.Println("panic")
-		panic(err)
-	}
-	defer fin.Close()
-	reader := csv.NewReader(fin)
-	reader.TrimLeadingSpace = true
-
-	var line []string
-	for {
-		line, err = reader.Read()
-		if err != nil {
-			break
-		}
-		times := strings.TrimSpace(line[0])
-
-		tmp, _ := strconv.ParseFloat(strings.TrimSpace(line[1]), 64)
-		hum, _ := strconv.ParseFloat(strings.TrimSpace(line[2]), 64)
-		led, _ := strconv.ParseFloat(strings.TrimSpace(line[3]), 64)
-		prs, _ := strconv.ParseFloat(strings.TrimSpace(line[4]), 64)
-		noz, _ := strconv.ParseFloat(strings.TrimSpace(line[5]), 64)
-		tvo, _ := strconv.ParseFloat(strings.TrimSpace(line[6]), 64)
-		co2, _ := strconv.ParseFloat(strings.TrimSpace(line[7]), 64)
-		dis, _ := strconv.ParseFloat(strings.TrimSpace(line[8]), 64)
-		srk, _ := strconv.ParseFloat(strings.TrimSpace(line[9]), 64)
-
-		data := omronElem{times, tmp, hum, led, prs, noz, tvo, co2, dis, srk}
-		dispdata = omronElem{times, tmp, hum, led, prs, noz, tvo, co2, dis, srk}
-		datas = append(datas, data)
-	}
-
-	return
 }
 
 func localAddresses() (string, error) {
@@ -206,7 +128,8 @@ func NumCheck(str string) bool {
 	}
 	return false
 }
-func getCo2_hour(filename string) (datas []udco2Elem, count int32) {
+
+func getCo2(filename string) (datas []udco2Elem, disp_co2 float64, count int32) {
 	fin, err := os.Open(filename)
 	if err != nil {
 		fmt.Println("panic")
@@ -242,15 +165,16 @@ func getCo2_hour(filename string) (datas []udco2Elem, count int32) {
 					datas = append(datas, data)
 					pretimes = times
 					count++
+
+					disp_co2 = c
 				}
 			}
 		}
 	}
-	//	datas = append(datas.Label, "a")
 
 	return
 }
-func getETC_hour(filename string) (datas []omronElem, count int32) {
+func getETC(filename string) (datas []omronElem, dispdata omronElem, count int32) {
 	fin, err := os.Open(filename)
 	if err != nil {
 		fmt.Println("panic")
@@ -279,6 +203,7 @@ func getETC_hour(filename string) (datas []omronElem, count int32) {
 		srk, _ := strconv.ParseFloat(strings.TrimSpace(line[9]), 64)
 
 		data := omronElem{times, tmp, hum, led, prs, noz, tvo, co2, dis, srk}
+		dispdata = omronElem{times, tmp, hum, led, prs, noz, tvo, co2, dis, srk}
 		datas = append(datas, data)
 		count++
 	}
@@ -325,8 +250,8 @@ func makeHourFile(outfile string){
 
 	recoverFile("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2_result.csv", "/home/zero/Z_Work/sensor/co2.fix.csv")
 	recoverFile("/home/zero/Z_Work/sensor/omron/omron.csv", "/home/zero/Z_Work/sensor/etc.fix.csv")
-	co2, co2len := getCo2_hour("/home/zero/Z_Work/sensor/co2.fix.csv")
-	etc, etclen := getETC_hour("/home/zero/Z_Work/sensor/etc.fix.csv")
+	co2, _, co2len := getCo2("/home/zero/Z_Work/sensor/co2.fix.csv")
+	etc, _, etclen := getETC("/home/zero/Z_Work/sensor/etc.fix.csv")
 
 	fout, err := os.OpenFile(outfile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -347,7 +272,8 @@ func makeHourFile(outfile string){
 }
 func makeZipFile() (zipfilename string) {
 	t := time.Now()
-	zipfilename = fmt.Sprintf("/home/zero/Z_Work/sensor/env.%04d%02d%02dT%02d%02d.csv.zip", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute())
+	hostname, _ := os.Hostname()
+	zipfilename = fmt.Sprintf("/home/zero/Z_Work/sensor/%s_%02d%02dT%02d%02d.csv.zip", hostname, t.Month(), t.Day(), t.Hour(), t.Minute())
 	dist, err := os.Create(zipfilename)
 	if err != nil {
 		panic(err)
@@ -373,6 +299,34 @@ func makeZipFile() (zipfilename string) {
 	return
 }
 
+func makeZipFile2() (zipfilename string) {
+	t := time.Now()
+	hostname, _ := os.Hostname()
+	zipfilename = fmt.Sprintf("/home/zero/Z_Work/sensor/%s_%02d%02dT%02d%02d.zip", hostname, t.Month(), t.Day(), t.Hour(), t.Minute())
+	dist, err := os.Create(zipfilename)
+	if err != nil {
+		panic(err)
+	}
+	defer dist.Close()
+
+	w := zip.NewWriter(dist)
+	defer w.Close()
+	outfilename := fmt.Sprintf("%s_%02d%02dT%02d%02d.csv", hostname, t.Month(), t.Day(), t.Hour(), t.Minute())
+	f, _ := w.Create(outfilename)
+
+	src, err := os.Open("/home/zero/Z_Work/sensor/env.csv")
+	if err != nil {
+		panic(err)
+	}
+	defer src.Close()
+
+	if _, err := io.Copy(f, src); err != nil {
+		panic(err)
+	}
+
+	return
+}
+
 func UuEncoder(s []byte) []byte {
 	
 	out := []byte{s[0]>>2 +32, (s[0]<<6)>>2 | s[1]>>4 + 32, (s[1]<<4)>>2 | s[2]>>6 +32,(s[2]<<2)>>2 + 32}
@@ -380,12 +334,6 @@ func UuEncoder(s []byte) []byte {
 	return out
 }
 
-func UuDecoder(s []byte) []byte {
-	
-	out := []byte{(s[0]-32)<<2 | (s[1]-32)>>4, (s[1]-32)<<4 | (s[2]-32)>>2, (s[2]-32)<<6 | (s[3]-32)}
-	
-	return out
-}
 
 func Encoder(s string, filename string, write bool) string {
 
@@ -429,92 +377,6 @@ func Encoder(s string, filename string, write bool) string {
 	
 }
 
-func FileEncoder(path string, write bool) string {
-	data, err := ioutil.ReadFile(path)
-	
-	if err != nil {
-		panic(err)
-	}
-	
-	return Encoder(string(data),path, write)
-}
-
-func Decoder(s string, write bool) (string,string,string){
-
-	slines := strings.Split(s,"\n")
-	
-	var perm,filename string
-	
-	if string(strings.Split(slines[0]," ")[0]) != "begin" {
-		fmt.Println("Incorrect File Format")
-		panic("Incorrect File Format")
-	}
-	
-	if string(strings.Split(slines[0]," ")[1]) == " " || string(strings.Split(slines[0]," ")[1]) == ""{
-		fmt.Println("Incorrect File Permissions")
-		panic("Incorrect File Permissions")
-	} else {
-		perm = strings.Split(slines[0]," ")[1]
-	}
-	
-	if string(strings.Split(slines[0]," ")[2]) == " " || string(strings.Split(slines[0]," ")[2]) == "" {
-		fmt.Println("Invalid Filename")
-		panic("Invalid Filename")
-	} else {
-		filename = strings.Split(slines[0], " ")[2]
-	}
-	
-	if string(slines[len(slines)-2]) != "end" {
-		fmt.Println("No END Found. Invalid Format")
-		panic("No END Found. Invalid Format")
-	}
-	
-	if string(slines[len(slines)-3]) != "`"{
-		fmt.Println("Incorrect ending format")
-		panic("Incorrect ending format")
-	}
-	
-	
-	slines = slines[1:len(slines)-3]
-	
-	var text []byte
-	for _,line := range slines {
-		if string(line[0]) == "M" {
-			for i:=0; i<15;i++ {
-				text = append(text,UuDecoder([]byte(line[4*i+1:4*i+4+1]))...)
-			}
-		} else {
-			ln := int(line[0])
-			for i:=0; i<(ln-32)/3;i++ {
-				text = append(text, UuDecoder([]byte(line[4*i+1:4*i+4+1]))...)
-			}
-		}
-	}
-	
-	if write{
-		
-		if perm == "644" {
-			
-			err:= ioutil.WriteFile(filename, text, 0644)
-			
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
-
-	return string(text), filename, perm
-}
-
-func FileDecoder(path string, write bool) (string,string, string){
-	data, err := ioutil.ReadFile(path)
-	
-	if err != nil {
-		panic(err)
-	}
-	
-	return Decoder(string(data), write)
-}
 
 func send_mail(attached string){
 
@@ -527,21 +389,21 @@ func send_mail(attached string){
 	// Set up authentication information.
 	auth := smtp.PlainAuth(
 		"",
-		"nishimura.2460.home@gmail.com",
-		"ctmtpruirzswhyaj",
+		"sensor.raspi.9831@gmail.com",
+		"lnfetzmhnnjsxgwl",
 		"smtp.gmail.com",
 	)
 
 	hostname, _ := os.Hostname()
 	subjectstring := "Mime-Version: 1.0\r\n"
-	subjectstring += fmt.Sprintf("Subject: %s %s\r\n",hostname, attached[25:42])
+	subjectstring += fmt.Sprintf("Subject: %s %s\r\n",hostname, attached[25:40])
 	subjectstring += fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"--nishi\"\r\n")
 	subjectstring += fmt.Sprintf("\r\n")
 	subjectstring += fmt.Sprintf("----nishi\r\n")
 	subjectstring += fmt.Sprintf("Content-Type: text/plain; charset=iso-2022-jp\r\n")
 	subjectstring += fmt.Sprintf("\r\n\r\n")
 	subjectstring += fmt.Sprintf("----nishi\r\n")
-	subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached[25:50])
+	subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached[25:44])
 	subjectstring += fmt.Sprintf("Content-Transfer-Encoding: x-uuencode\r\n")
 
 
@@ -550,7 +412,7 @@ func send_mail(attached string){
 	errs := smtp.SendMail(
 		"smtp.gmail.com:587",
 		auth,
-		"nishimura.2460.home@gmail.com",
+		"sensor.raspi.9831@gmail.com",
 //		[]string{"nishimura.2460.home@gmail.com"},
 		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
 		[]byte(subjectstring + s_out + "\r\n----nishi--\r\n"),
@@ -561,15 +423,13 @@ func send_mail(attached string){
 }
 func main() {
 
-	var disp_co2 float64
-	var dispdata omronElem
 	var count int32 = 0
 
 	for {
-		_, disp_co2 = getCo2()
+		_, disp_co2, _ := getCo2("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2_result.csv")
 		setCo2( disp_co2 )
 
-		_, dispdata = getETC()
+		_, dispdata, _ := getETC("/home/zero/Z_Work/sensor/omron/omron.csv")
 		setETC( dispdata )
 
 		dispAll()
@@ -577,10 +437,10 @@ func main() {
 		time.Sleep(time.Minute * 1)
 
 		count++
-		if count>=60 {
+		if count >= 60 {
 			count = 0
 			makeHourFile("/home/zero/Z_Work/sensor/env.csv")
-			zipfile := makeZipFile()
+			zipfile := makeZipFile2()
 			send_mail(zipfile)
 			_ = os.Remove(zipfile)
 		}
