@@ -7,6 +7,7 @@ import (
 	"time"
 	"os"
 	"os/signal"
+	"io"
 	"io/ioutil"
 	"syscall"
 	"github.com/tarm/serial"
@@ -46,9 +47,34 @@ func recoverFile(infile string, outfile string) {
 	}
 }
 
+func Exists(filename string) bool {
+    _, err := os.Stat(filename)
+    return err == nil
+}
+
+func Copy(srcName string, dstName string) {
+    src, err := os.Open(srcName)
+    if err != nil {
+        panic(err)
+    }
+    defer src.Close()
+
+    dst, err := os.Create(dstName)
+    if err != nil {
+        panic(err)
+    }
+    defer dst.Close()
+
+    _, err = io.Copy(dst, src)
+    if  err != nil {
+        panic(err)
+    }
+}
+
+
 func main() {
 
-	recoverFile("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2_result.csv", "/home/zero/Z_Work/sensor/UD-CO2S/ud-co2_result.csv")
+	recoverFile("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2.csv", "/home/zero/Z_Work/sensor/UD-CO2S/ud-co2.csv")
 
 	go dataGet()
 
@@ -67,12 +93,16 @@ func dataGet() {
 
 	s.Flush()
 
-//	fout, err := os.Create("ud-co2_result.csv")
-    fout, err := os.OpenFile("ud-co2_result.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+//	fout, err := os.Create("ud-co2.csv")
+	existed := Exists("ud-co2.csv")
+    fout, err := os.OpenFile("ud-co2.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		panic(err)
 	}
 	defer fout.Close()
+	if existed {
+		fout.WriteString("2022/09/21 15:21,CO2=450,HUM=37.9,TMP=26.9\n")
+	}
 
 	for {
 		mySerialWrite(s, "ID?\r\n")
@@ -91,6 +121,27 @@ func dataGet() {
 	res := mySerialRead(s)
 
 	for {
+
+		if Exists("midnight") {
+			now := time.Now()
+			outfile := fmt.Sprintf("ud_co2s_%4d%02d%02d.csv", now.Year(), now.Month(), now.Day())
+
+			Copy("ud-co2.csv",outfile)
+			fout.Close()
+
+			_ = os.Remove("ud-co2.csv")
+			fout, err = os.OpenFile("ud-co2.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				panic(err)
+			}
+			defer fout.Close()
+			fout.WriteString("2022/09/21 15:21,CO2=450,HUM=37.9,TMP=26.9\n")
+
+			_ = os.Remove("midnight")
+		}
+
+
+
 		res = mySerialRead(s)
 		if len(res) > 2 {
 			t := time.Now()

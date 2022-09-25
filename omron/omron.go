@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"io"
 	"io/ioutil"
 	"time"
 
@@ -44,9 +45,32 @@ func recoverFile(infile string, outfile string) {
 	}
 }
 
+func Exists(filename string) bool {
+    _, err := os.Stat(filename)
+    return err == nil
+}
+
+func Copy(srcName string, dstName string) {
+    src, err := os.Open(srcName)
+    if err != nil {
+        panic(err)
+    }
+    defer src.Close()
+
+    dst, err := os.Create(dstName)
+    if err != nil {
+        panic(err)
+    }
+    defer dst.Close()
+
+    _, err = io.Copy(dst, src)
+    if  err != nil {
+        panic(err)
+    }
+}
 func main() {
 
-	recoverFile("/home/zero/Z_Work/sensor/omron/omron.csv", "/home/zero/Z_Work/sensor/omron/omron.csv")
+	recoverFile("/home/zero/Z_Work/sensor/omron/omron2.csv", "/home/zero/Z_Work/sensor/omron/omron2.csv")
 
 	c := &serial.Config{Name: "/dev/ttyUSB0", Baud: 115200, ReadTimeout: time.Second * 1}
 
@@ -57,7 +81,7 @@ func main() {
 
 	s.Flush()
 
-	fout, err := os.OpenFile("omron.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	fout, err := os.OpenFile("omron2.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -85,6 +109,24 @@ func main() {
 	*/
 
 	for {
+
+		if Exists("midnight") {
+			now := time.Now()
+			outfile := fmt.Sprintf("omron%4d%02d%02d.csv", now.Year(), now.Month(), now.Day())
+
+			Copy("omron2.csv",outfile)
+			fout.Close()
+
+			_ = os.Remove("omron2.csv")
+			fout, err = os.OpenFile("omron2.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				panic(err)
+			}
+			defer fout.Close()
+
+			_ = os.Remove("midnight")
+		}
+
 		requestRead(s, 0x5021) // Latest data short
 		datas = mySerialRead(s)
 		/*

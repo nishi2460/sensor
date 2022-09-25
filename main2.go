@@ -68,20 +68,22 @@ func setETC(etc omronElem) {
 	dispData.Strk = etc.Strk
 }
 func dispAll(){
-	fmt.Printf(" \n")
-	fmt.Printf(" %v\n", dispData.Time[6:16])
-	fmt.Printf(" \n")
-	fmt.Printf(" Temp: %v\n", dispData.Temp)
-	fmt.Printf(" Humi: %v\n", dispData.Humi)
-	fmt.Printf(" Led : %v\n", dispData.Led)
-	fmt.Printf(" Pres: %v\n", dispData.Press)
-	fmt.Printf(" Noiz: %v\n", dispData.Noize)
-	fmt.Printf(" TVOC: %v\n", dispData.TVOC)
-	fmt.Printf(" CO2 : %v\n", dispData.CO2)
-	fmt.Printf(" Dis : %v\n", dispData.Dis)
-	fmt.Printf(" Strk: %v\n", dispData.Strk)
-	fmt.Printf(" \n")
-
+//	fmt.Printf("len:%v\n",dispData)
+	if len(dispData.Time) > 6 {
+		fmt.Printf(" \n")
+		fmt.Printf(" %v\n", dispData.Time[6:16])
+		fmt.Printf(" \n")
+		fmt.Printf(" Temp: %v\n", dispData.Temp)
+		fmt.Printf(" Humi: %v\n", dispData.Humi)
+		fmt.Printf(" Led : %v\n", dispData.Led)
+		fmt.Printf(" Pres: %v\n", dispData.Press)
+		fmt.Printf(" Noiz: %v\n", dispData.Noize)
+		fmt.Printf(" TVOC: %v\n", dispData.TVOC)
+		fmt.Printf(" CO2 : %v\n", dispData.CO2)
+		fmt.Printf(" Dis : %v\n", dispData.Dis)
+		fmt.Printf(" Strk: %v\n", dispData.Strk)
+		fmt.Printf(" \n")
+	}
 	aaa, _ := localAddresses()
 	fmt.Println(aaa)
 }
@@ -211,47 +213,12 @@ func getETC(filename string) (datas []omronElem, dispdata omronElem, count int32
 	return
 }
 
-func recoverFile(infile string, outfile string) {
-	filename := infile
-	f, err := os.Open(filename)
-	if err != nil {
-		fmt.Println("err:", err)
-		return
-	}
-
-	c := make([]byte, 1)
-	var buf []byte
-	size := 0
-	for {
-		len, r_err := f.Read(c)
-		if len == 0 {
-			break
-		}
-		size += len
-		if r_err != nil {
-			fmt.Println("err:", err)
-			return
-		}
-		if c[0] != 0 {
-			buf = append(buf, c[0])
-		}
-	}
-
-	err = ioutil.WriteFile(outfile, buf, 0755)
-	if err != nil {
-		fmt.Println("panic")
-		panic(err)
-	}
-}
-
 func makeHourFile(outfile string){
 
 	_ = os.Remove(outfile)
 
-	recoverFile("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2_result.csv", "/home/zero/Z_Work/sensor/co2.fix.csv")
-	recoverFile("/home/zero/Z_Work/sensor/omron/omron.csv", "/home/zero/Z_Work/sensor/etc.fix.csv")
-	co2, _, co2len := getCo2("/home/zero/Z_Work/sensor/co2.fix.csv")
-	etc, _, etclen := getETC("/home/zero/Z_Work/sensor/etc.fix.csv")
+	co2, _, co2len := getCo2("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2.csv")
+	etc, _, etclen := getETC("/home/zero/Z_Work/sensor/omron/omron2.csv")
 
 	fout, err := os.OpenFile(outfile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -378,13 +345,40 @@ func Encoder(s string, filename string, write bool) string {
 }
 
 
-func send_mail(attached string){
+func send_mail(attached string, mainstring string){
 
-	data, err := ioutil.ReadFile(attached)
-	if err != nil {
-		panic(err)
+	var subjectstring string
+
+	hostname, _ := os.Hostname()
+
+	if attached != "" {
+		data, err := ioutil.ReadFile(attached)
+		if err != nil {
+			panic(err)
+		}
+		s_out := Encoder(string(data), attached, false)
+
+		subjectstring = "Mime-Version: 1.0\r\n"
+		subjectstring += fmt.Sprintf("Subject: %s %s\r\n",hostname, attached[25:40])
+		subjectstring += fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"--nishi\"\r\n")
+		subjectstring += fmt.Sprintf("\r\n")
+		subjectstring += fmt.Sprintf("----nishi\r\n")
+		subjectstring += fmt.Sprintf("Content-Type: text/plain; charset=iso-2022-jp\r\n")
+		subjectstring += fmt.Sprintf("\r\n\r\n")
+		subjectstring += fmt.Sprintf("----nishi\r\n")
+		subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached[25:44])
+		subjectstring += fmt.Sprintf("Content-Transfer-Encoding: x-uuencode\r\n")
+		subjectstring += s_out + "\r\n----nishi--\r\n"
+	} else {
+		s_out := mainstring
+		tinfo := time.Now()
+
+		subjectstring = "Mime-Version: 1.0\r\n"
+		subjectstring += fmt.Sprintf("Subject: %s %s %02d%02d\r\n",hostname, "buffer clear", tinfo.Month(), tinfo.Day())
+		subjectstring += fmt.Sprintf("Content-Type: text/plain; charset=iso-2022-jp\r\n")
+		subjectstring += fmt.Sprintf("\r\n")
+		subjectstring += s_out
 	}
-	s_out := Encoder(string(data), attached, false)
 
 	// Set up authentication information.
 	auth := smtp.PlainAuth(
@@ -394,19 +388,6 @@ func send_mail(attached string){
 		"smtp.gmail.com",
 	)
 
-	hostname, _ := os.Hostname()
-	subjectstring := "Mime-Version: 1.0\r\n"
-	subjectstring += fmt.Sprintf("Subject: %s %s\r\n",hostname, attached[25:40])
-	subjectstring += fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"--nishi\"\r\n")
-	subjectstring += fmt.Sprintf("\r\n")
-	subjectstring += fmt.Sprintf("----nishi\r\n")
-	subjectstring += fmt.Sprintf("Content-Type: text/plain; charset=iso-2022-jp\r\n")
-	subjectstring += fmt.Sprintf("\r\n\r\n")
-	subjectstring += fmt.Sprintf("----nishi\r\n")
-	subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached[25:44])
-	subjectstring += fmt.Sprintf("Content-Transfer-Encoding: x-uuencode\r\n")
-
-
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
 	errs := smtp.SendMail(
@@ -415,34 +396,66 @@ func send_mail(attached string){
 		"sensor.raspi.9831@gmail.com",
 //		[]string{"nishimura.2460.home@gmail.com"},
 		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
-		[]byte(subjectstring + s_out + "\r\n----nishi--\r\n"),
+		[]byte(subjectstring),
 	)
 	if errs != nil {
-		panic(err)
+		panic(errs)
 	}
 }
+
+
 func main() {
 
-	var count int32 = 0
+	dayinfo := time.Now()
+	timeinfo:= time.Now()
+
+//	count := 0
 
 	for {
-		_, disp_co2, _ := getCo2("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2_result.csv")
+		_, disp_co2, _ := getCo2("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2.csv")
 		setCo2( disp_co2 )
 
-		_, dispdata, _ := getETC("/home/zero/Z_Work/sensor/omron/omron.csv")
+		_, dispdata, _ := getETC("/home/zero/Z_Work/sensor/omron/omron2.csv")
 		setETC( dispdata )
 
 		dispAll()
 
 		time.Sleep(time.Minute * 1)
 
-		count++
-		if count >= 60 {
-			count = 0
+		now := time.Now()
+		hostname, _ := os.Hostname()
+		hostnum, _  := strconv.ParseInt(string(hostname[4]),16,64)
+		if timeinfo.Hour() != now.Hour() && int(hostnum) <= now.Minute() {
+//		if count >= 0 {
 			makeHourFile("/home/zero/Z_Work/sensor/env.csv")
 			zipfile := makeZipFile2()
-			send_mail(zipfile)
+			send_mail(zipfile, "")
 			_ = os.Remove(zipfile)
+
+			timeinfo = time.Now()
+
+//			count++
+//			if count > 1 {
+//				count = 0
+			if dayinfo.Day() != now.Day() {
+				///
+				f1, err := os.OpenFile("/home/zero/Z_Work/sensor/omron/midnight", os.O_WRONLY|os.O_CREATE, 0666)
+				if err != nil {
+					panic(err)
+				}
+				defer f1.Close()
+				f1.WriteString("midnight\n")
+
+				f2, err := os.OpenFile("/home/zero/Z_Work/sensor/UD-CO2S/midnight", os.O_WRONLY|os.O_CREATE, 0666)
+				if err != nil {
+					panic(err)
+				}
+				defer f2.Close()
+				f2.WriteString("midnight\n")
+
+				send_mail("", "notice buffer clear\r\n")
+				dayinfo = time.Now()
+			}
 		}
 	}
 }
