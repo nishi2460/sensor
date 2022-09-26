@@ -51,6 +51,10 @@ type dispElem struct {
 
 var dispData dispElem
 
+var (
+	builddate string
+)
+
 func setCo2(co2 float64) {
 	dispData.CO2 = co2
 }
@@ -368,7 +372,9 @@ func send_mail(attached string, mainstring string){
 		subjectstring += fmt.Sprintf("----nishi\r\n")
 		subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached[25:44])
 		subjectstring += fmt.Sprintf("Content-Transfer-Encoding: x-uuencode\r\n")
-		subjectstring += s_out + "\r\n----nishi--\r\n"
+		subjectstring += s_out + "\r\n" 
+		subjectstring += "Build: " + builddate + "\r\n"
+		subjectstring += "\r\n----nishi--\r\n"
 	} else {
 		s_out := mainstring
 		tinfo := time.Now()
@@ -377,7 +383,8 @@ func send_mail(attached string, mainstring string){
 		subjectstring += fmt.Sprintf("Subject: %s %s %02d%02d\r\n",hostname, "buffer clear", tinfo.Month(), tinfo.Day())
 		subjectstring += fmt.Sprintf("Content-Type: text/plain; charset=iso-2022-jp\r\n")
 		subjectstring += fmt.Sprintf("\r\n")
-		subjectstring += s_out
+		subjectstring += s_out + "\r\n" 
+		subjectstring += "Build: " + builddate + "\r\n"
 	}
 
 	// Set up authentication information.
