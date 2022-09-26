@@ -369,11 +369,11 @@ func send_mail(attached string, mainstring string){
 		subjectstring += fmt.Sprintf("----nishi\r\n")
 		subjectstring += fmt.Sprintf("Content-Type: text/plain; charset=iso-2022-jp\r\n")
 		subjectstring += fmt.Sprintf("\r\n\r\n")
+		subjectstring += "Build: " + builddate + "\r\n"
 		subjectstring += fmt.Sprintf("----nishi\r\n")
 		subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached[25:44])
 		subjectstring += fmt.Sprintf("Content-Transfer-Encoding: x-uuencode\r\n")
 		subjectstring += s_out + "\r\n" 
-		subjectstring += "Build: " + builddate + "\r\n"
 		subjectstring += "\r\n----nishi--\r\n"
 	} else {
 		s_out := mainstring
