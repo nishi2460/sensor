@@ -363,7 +363,7 @@ func send_mail(attached string, mainstring string){
 		s_out := Encoder(string(data), attached, false)
 
 		subjectstring = "Mime-Version: 1.0\r\n"
-		subjectstring += fmt.Sprintf("Subject: %s %s\r\n",hostname, attached[25:40])
+		subjectstring += fmt.Sprintf("Subject: %s %s\r\n", attached[25:40], mainstring)
 		subjectstring += fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"--nishi\"\r\n")
 		subjectstring += fmt.Sprintf("\r\n")
 		subjectstring += fmt.Sprintf("----nishi\r\n")
@@ -416,8 +416,6 @@ func main() {
 	dayinfo := time.Now()
 	timeinfo:= time.Now()
 
-//	count := 0
-
 	for {
 		_, disp_co2, _ := getCo2("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2.csv")
 		setCo2( disp_co2 )
@@ -432,18 +430,19 @@ func main() {
 		now := time.Now()
 		hostname, _ := os.Hostname()
 		hostnum, _  := strconv.ParseInt(string(hostname[4]),16,64)
+
 		if timeinfo.Hour() != now.Hour() && int(hostnum) <= now.Minute() {
-//		if count >= 0 {
 			makeHourFile("/home/zero/Z_Work/sensor/env.csv")
 			zipfile := makeZipFile2()
-			send_mail(zipfile, "")
+			if dayinfo.Day() != now.Day() {
+				send_mail(zipfile, "buffer clear")
+			} else {
+				send_mail(zipfile, "")
+			}
 			_ = os.Remove(zipfile)
 
 			timeinfo = time.Now()
 
-//			count++
-//			if count > 1 {
-//				count = 0
 			if dayinfo.Day() != now.Day() {
 				///
 				f1, err := os.OpenFile("/home/zero/Z_Work/sensor/omron/midnight", os.O_WRONLY|os.O_CREATE, 0666)
@@ -460,7 +459,6 @@ func main() {
 				defer f2.Close()
 				f2.WriteString("midnight\n")
 
-				send_mail("", "notice buffer clear\r\n")
 				dayinfo = time.Now()
 			}
 		}
