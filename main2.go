@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 	"net"
-	"compress/gzip"
-	"archive/zip"
 	"net/smtp"
 )
 
@@ -217,7 +215,7 @@ func getETC(filename string) (datas []omronElem, dispdata omronElem, count int32
 	return
 }
 
-func makeHourFile(outfile string){
+func makeHourFile(outfile string) {
 
 	_ = os.Remove(outfile)
 
@@ -240,62 +238,6 @@ func makeHourFile(outfile string){
 		}
 	}
 
-}
-func makeZipFile() (zipfilename string) {
-	t := time.Now()
-	hostname, _ := os.Hostname()
-	zipfilename = fmt.Sprintf("/home/zero/Z_Work/sensor/%s_%02d%02dT%02d%02d.csv.zip", hostname, t.Month(), t.Day(), t.Hour(), t.Minute())
-	dist, err := os.Create(zipfilename)
-	if err != nil {
-		panic(err)
-	}
-	defer dist.Close()
-
-	gw, err := gzip.NewWriterLevel(dist, gzip.BestCompression)
-	if err != nil {
-		panic(err)
-	}
-	defer gw.Close()
-
-	src, err := os.Open("/home/zero/Z_Work/sensor/env.csv")
-	if err != nil {
-		panic(err)
-	}
-	defer src.Close()
-
-	if _, err := io.Copy(gw, src); err != nil {
-		panic(err)
-	}
-
-	return
-}
-
-func makeZipFile2() (zipfilename string) {
-	t := time.Now()
-	hostname, _ := os.Hostname()
-	zipfilename = fmt.Sprintf("/home/zero/Z_Work/sensor/%s_%02d%02dT%02d%02d.zip", hostname, t.Month(), t.Day(), t.Hour(), t.Minute())
-	dist, err := os.Create(zipfilename)
-	if err != nil {
-		panic(err)
-	}
-	defer dist.Close()
-
-	w := zip.NewWriter(dist)
-	defer w.Close()
-	outfilename := fmt.Sprintf("%s_%02d%02dT%02d%02d.csv", hostname, t.Month(), t.Day(), t.Hour(), t.Minute())
-	f, _ := w.Create(outfilename)
-
-	src, err := os.Open("/home/zero/Z_Work/sensor/env.csv")
-	if err != nil {
-		panic(err)
-	}
-	defer src.Close()
-
-	if _, err := io.Copy(f, src); err != nil {
-		panic(err)
-	}
-
-	return
 }
 
 func UuEncoder(s []byte) []byte {
@@ -363,7 +305,7 @@ func send_mail(attached string, mainstring string){
 		s_out := Encoder(string(data), attached, false)
 
 		subjectstring = "Mime-Version: 1.0\r\n"
-		subjectstring += fmt.Sprintf("Subject: %s %s\r\n", attached[25:40], mainstring)
+		subjectstring += fmt.Sprintf("Subject: %s %s\r\n", attached, mainstring)
 		subjectstring += fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"--nishi\"\r\n")
 		subjectstring += fmt.Sprintf("\r\n")
 		subjectstring += fmt.Sprintf("----nishi\r\n")
@@ -371,7 +313,7 @@ func send_mail(attached string, mainstring string){
 		subjectstring += fmt.Sprintf("\r\n\r\n")
 		subjectstring += "Build: " + builddate + "\r\n"
 		subjectstring += fmt.Sprintf("----nishi\r\n")
-		subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached[25:44])
+		subjectstring += fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n",attached)
 		subjectstring += fmt.Sprintf("Content-Transfer-Encoding: x-uuencode\r\n")
 		subjectstring += s_out + "\r\n" 
 		subjectstring += "\r\n----nishi--\r\n"
@@ -410,6 +352,24 @@ func send_mail(attached string, mainstring string){
 	}
 }
 
+func Copy(srcName string, dstName string) {
+    src, err := os.Open(srcName)
+    if err != nil {
+        panic(err)
+    }
+    defer src.Close()
+
+    dst, err := os.Create(dstName)
+    if err != nil {
+        panic(err)
+    }
+    defer dst.Close()
+
+    _, err = io.Copy(dst, src)
+    if  err != nil {
+        panic(err)
+    }
+}
 
 func main() {
 
@@ -432,14 +392,16 @@ func main() {
 		hostnum, _  := strconv.ParseInt(string(hostname[4]),16,64)
 
 		if timeinfo.Hour() != now.Hour() && int(hostnum) <= now.Minute() {
-			makeHourFile("/home/zero/Z_Work/sensor/env.csv")
-			zipfile := makeZipFile2()
+			envfilename := "/home/zero/Z_Work/sensor/env.csv"
+			makeHourFile(envfilename)
+			csvfile := fmt.Sprintf("%s_%02d%02dT%02d%02d.csv", hostname, timeinfo.Month(), timeinfo.Day(), timeinfo.Hour(), timeinfo.Minute())
+			Copy(envfilename, csvfile)
 			if dayinfo.Day() != now.Day() {
-				send_mail(zipfile, "buffer clear")
+				send_mail(csvfile, "buffer clear")
 			} else {
-				send_mail(zipfile, "")
+				send_mail(csvfile, "")
 			}
-			_ = os.Remove(zipfile)
+			_ = os.Remove(csvfile)
 
 			timeinfo = time.Now()
 
