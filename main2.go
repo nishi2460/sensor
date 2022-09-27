@@ -394,7 +394,7 @@ func main() {
 		if timeinfo.Hour() != now.Hour() && int(hostnum) <= now.Minute() {
 			envfilename := "/home/zero/Z_Work/sensor/env.csv"
 			makeHourFile(envfilename)
-			csvfile := fmt.Sprintf("%s_%02d%02dT%02d%02d.csv", hostname, timeinfo.Month(), timeinfo.Day(), timeinfo.Hour(), timeinfo.Minute())
+			csvfile := fmt.Sprintf("%s_%02d%02dT%02d%02d.csv", hostname, now.Month(), now.Day(), now.Hour(), now.Minute())
 			Copy(envfilename, csvfile)
 			if dayinfo.Day() != now.Day() {
 				send_mail(csvfile, "buffer clear")
