@@ -73,7 +73,7 @@ func dispAll(){
 //	fmt.Printf("len:%v\n",dispData)
 	if len(dispData.Time) > 6 {
 		fmt.Printf(" \n")
-		fmt.Printf(" %v\n", dispData.Time[6:16])
+		fmt.Printf(" %v\n", dispData.Time[5:16])
 		fmt.Printf(" \n")
 		fmt.Printf(" Temp: %v\n", dispData.Temp)
 		fmt.Printf(" Humi: %v\n", dispData.Humi)
