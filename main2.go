@@ -164,7 +164,7 @@ func getCo2(filename string) (datas []udco2Elem, disp_co2 float64, count int32) 
 			result := rep.Split(line[1], -1)
 			if result[0] == "" && NumCheck(result[1]) {
 				c, _ := strconv.ParseFloat(result[1], 64)
-				if 300 <= c && c <= 1500 {
+				if 200 <= c && c <= 3000 {
 					data := udco2Elem{times, c}
 					datas = append(datas, data)
 					pretimes = times
