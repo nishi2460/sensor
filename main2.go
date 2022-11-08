@@ -322,7 +322,7 @@ func send_mail(attached string, mainstring string){
 		tinfo := time.Now()
 
 		subjectstring = "Mime-Version: 1.0\r\n"
-		subjectstring += fmt.Sprintf("Subject: %s %s %02d%02d\r\n",hostname, "buffer clear", tinfo.Month(), tinfo.Day())
+		subjectstring += fmt.Sprintf("Subject: %s %s %02d%02d\r\n",hostname, mainstring, tinfo.Month(), tinfo.Day())
 		subjectstring += fmt.Sprintf("Content-Type: text/plain; charset=iso-2022-jp\r\n")
 		subjectstring += fmt.Sprintf("\r\n")
 		subjectstring += s_out + "\r\n" 
@@ -376,6 +376,8 @@ func main() {
 
 	dayinfo := time.Now()
 	timeinfo:= time.Now()
+
+	send_mail("", "PowerON")
 
 	for {
 		_, disp_co2, _ := getCo2("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2.csv")
