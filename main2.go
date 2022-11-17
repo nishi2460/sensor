@@ -346,8 +346,8 @@ func send_mail(attached string, mainstring string){
 		"smtp.gmail.com:587",
 		auth,
 		"sensor.raspi.9831@gmail.com",
-//		[]string{"nishimura.2460.home@gmail.com"},
-		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
+		[]string{"nishimura.2460.home@gmail.com"},
+//		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
 		[]byte(subjectstring),
 	)
 	if errs != nil {
