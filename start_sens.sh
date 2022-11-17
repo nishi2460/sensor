@@ -17,8 +17,15 @@ for i in `seq 1 $TIMEOUT` ; do
 done
 
 if [ $CHANGE == 0 ]; then
-    echo "timeout watch timesyncd clock update"
+    echo "timeout timesyncd clock update"
 fi
+
+
+read -t 5 -p "interrupt: " DATA
+case "$DATA" in
+ [xX]) exit;;
+ *) echo ""
+esac
 
 ~/Z_Work/sensor/mail
 
