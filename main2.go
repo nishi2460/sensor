@@ -162,9 +162,12 @@ func getCo2(filename string) (datas []udco2Elem, disp_co2 float64, count int32) 
 		if pretimes != times {
 			rep := regexp.MustCompile(`CO2=\s*`)
 			result := rep.Split(line[1], -1)
+			if len(result) != 2 {
+				continue
+			}
 			if result[0] == "" && NumCheck(result[1]) {
 				c, _ := strconv.ParseFloat(result[1], 64)
-				if 200 <= c && c <= 3000 {
+				if 200 <= c && c <= 5000 {
 					data := udco2Elem{times, c}
 					datas = append(datas, data)
 					pretimes = times
@@ -343,12 +346,19 @@ func send_mail(attached string, mainstring string){
 		"smtp.gmail.com:587",
 		auth,
 		"sensor.raspi.9831@gmail.com",
-//		[]string{"nishimura.2460.home@gmail.com"},
-		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
-//		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com","ikuo.hayaishi@gmail.com"},
+		[]string{"nishimura.2460.home@gmail.com"},
+//		[]string{"aict.mem2022@gmail.com","Setestse123123@gmail.com","nishimura.2460.home@gmail.com"},
 		[]byte(subjectstring),
 	)
 	if errs != nil {
+		fout, err := os.OpenFile("log.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			panic(err)
+		}
+		defer fout.Close()
+		res_str := fmt.Sprintf("%v\n", errs)
+		fout.WriteString(res_str)
+
 		panic(errs)
 	}
 }
@@ -377,8 +387,6 @@ func main() {
 	dayinfo := time.Now()
 	timeinfo:= time.Now()
 
-	send_mail("", "PowerON")
-
 	for {
 		_, disp_co2, _ := getCo2("/home/zero/Z_Work/sensor/UD-CO2S/ud-co2.csv")
 		setCo2( disp_co2 )
@@ -392,9 +400,10 @@ func main() {
 
 		now := time.Now()
 		hostname, _ := os.Hostname()
-		hostnum, _  := strconv.ParseInt(string(hostname[4]),16,64)
+//		hostnum, _  := strconv.ParseInt(string(hostname[4]),16,64)
 
-		if timeinfo.Hour() != now.Hour() && int(hostnum) <= now.Minute() {
+//		if timeinfo.Hour() != now.Hour() && int(hostnum) <= now.Minute() {
+		if int(now.Minute())%10==0 {
 			envfilename := "/home/zero/Z_Work/sensor/env.csv"
 			makeHourFile(envfilename)
 			csvfile := fmt.Sprintf("%s_%02d%02dT%02d%02d.csv", hostname, now.Month(), now.Day(), now.Hour(), now.Minute())
@@ -407,7 +416,7 @@ func main() {
 			_ = os.Remove(csvfile)
 
 			timeinfo = time.Now()
-
+fmt.Println(timeinfo)
 			if dayinfo.Day() != now.Day() {
 				///
 				f1, err := os.OpenFile("/home/zero/Z_Work/sensor/omron/midnight", os.O_WRONLY|os.O_CREATE, 0666)

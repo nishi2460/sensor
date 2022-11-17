@@ -20,6 +20,7 @@ if [ $CHANGE == 0 ]; then
     echo "timeout watch timesyncd clock update"
 fi
 
+~/Z_Work/sensor/mail
 
 while true
 do
